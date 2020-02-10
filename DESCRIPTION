@@ -5,8 +5,8 @@ Version: 0.1.0
 Author: Carl Bonander
 Maintainer: Carl Bonander <carl.bonander@gu.se>
 Description: This package includes wrappers for estimating causal (or instrumental) causal forests and policy decision trees in cost-effectiveness analyses with individual-level data from randomized trials or observational studies. The core functionality relies on the grf and policytree packages.
-Imports: grf, ggplot2, cowplot, tableone, boot, sandwich, stats
-Suggests: mgcv, policytree, DiagrammeR
+Imports: grf, ggplot2, cowplot, tableone, boot, sandwich, stats, policytree
+Suggests: mgcv, DiagrammeR
 License: GPL-3
 Encoding: UTF-8
 LazyData: true
