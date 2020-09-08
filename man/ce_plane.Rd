@@ -2,7 +2,7 @@
 % Please edit documentation in R/ce_plane.R
 \name{ce_plane}
 \alias{ce_plane}
-\title{Plot an individual or population-level cost-effectiveness plane using a CEA forest.}
+\title{Plot an individual-level or average cost-effectiveness plane using a CEA forest.}
 \usage{
 ce_plane(
   forest,
@@ -10,21 +10,24 @@ ce_plane(
   type = "individual",
   R = 999,
   subset = NULL,
-  WTP = NULL
+  WTP = NULL,
+  certainty_groups = FALSE
 )
 }
 \arguments{
 \item{forest}{A trained CEA forest.}
 
-\item{alpha}{The desired confidence level, defaults to 0.05. Only used when nmb is supplied.}
+\item{alpha}{The desired confidence level, defaults to 0.05.}
 
-\item{type}{A string (either "individual" or "population") specifying which type of cost-effectiveness plane to plot. Defaults to individual.}
+\item{type}{A string (either "individual" or "average") specifying which type of cost-effectiveness plane to plot. Defaults to individual.}
 
-\item{R}{Number of bootstrap replicates (only used for population-level planes).}
+\item{R}{Number of bootstrap replicates (only used for average CE planes).}
 
-\item{subset}{A specified subpopulation to compute the plane for (only used for population-level planes). Defaults to NULL.}
+\item{subset}{A specified subpopulation to compute the plane for (only used for average CE planes). Defaults to NULL.}
 
-\item{WTP}{The willingness to pay per one unit increase in the outcome. Only used for population-level plots. Re-estimate the forest to change WTP for individual-level plots. Uses the WTP from the forest object by default.}
+\item{WTP}{The willingness to pay per one unit increase in the outcome. Not used when certainty_groups is TRUE. Re-estimate the forest to change WTP in that case. Uses the WTP from the forest object by default.}
+
+\item{certainty_groups}{Color code individual estimates based on certainty groups? Defaults to FALSE.}
 }
 \value{
 A ggplot2 object.

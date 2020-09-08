@@ -22,6 +22,10 @@
 #' @import grf
 #' @export
 cea_forest = function(Y, C, X, W, Z=NULL, WTP=NULL, W.hat=NULL, tune.parameters="all", num.trees=5000, ...) {
+
+  #C++ seed to grf
+  seed <- runif(1, 0, .Machine$integer.max)
+
   if (is.null(WTP)) {
     message("No willingness to pay (WTP) per one-unit increase in Y supplied. Setting WTP to 1.")
     WTP = 1
@@ -41,9 +45,9 @@ cea_forest = function(Y, C, X, W, Z=NULL, WTP=NULL, W.hat=NULL, tune.parameters=
     W.hat = predict(w_forest)$predictions
   }
   if (is.null(Z)) {
-  y_forest = grf::causal_forest(X=X, Y=Y, W=W, W.hat=W.hat, tune.parameters=tune.parameters, num.trees=num.trees, ...)
-  c_forest = grf::causal_forest(X=X, Y=C, W=W, W.hat=W.hat, tune.parameters=tune.parameters, num.trees=num.trees, ...)
-  nmb_forest = grf::causal_forest(X=X, Y=Y*WTP-C, W=W, W.hat=W.hat, tune.parameters=tune.parameters, num.trees=num.trees, ...)
+  y_forest = grf::causal_forest(X=X, Y=Y, W=W, W.hat=W.hat, tune.parameters=tune.parameters, num.trees=num.trees, seed=seed, ...)
+  c_forest = grf::causal_forest(X=X, Y=C, W=W, W.hat=W.hat, tune.parameters=tune.parameters, num.trees=num.trees, seed=seed, ...)
+  nmb_forest = grf::causal_forest(X=X, Y=Y*WTP-C, W=W, W.hat=W.hat, tune.parameters=tune.parameters, num.trees=num.trees, seed=seed, ...)
   forest = list()
   forest[["outcome.forest"]] = y_forest
   forest[["cost.forest"]] = c_forest
@@ -51,9 +55,9 @@ cea_forest = function(Y, C, X, W, Z=NULL, WTP=NULL, W.hat=NULL, tune.parameters=
   forest[["WTP"]] = WTP
   class(forest) = c("cea_forest", "CEAforests")
   } else {
-  y_forest = grf::instrumental_forest(X=X, Y=Y, W=W, Z=Z, W.hat=W.hat, tune.parameters=tune.parameters, num.trees=num.trees, ...)
-  c_forest = grf::instrumental_forest(X=X, Y=C, W=W, Z=Z, W.hat=W.hat, tune.parameters=tune.parameters, num.trees=num.trees, ...)
-  nmb_forest = grf::instrumental_forest(X=X, Y=Y*WTP-C, W=W, Z=Z, W.hat=W.hat, tune.parameters=tune.parameters, num.trees=num.trees, ...)
+  y_forest = grf::instrumental_forest(X=X, Y=Y, W=W, Z=Z, W.hat=W.hat, tune.parameters=tune.parameters, num.trees=num.trees, seed=seed, ...)
+  c_forest = grf::instrumental_forest(X=X, Y=C, W=W, Z=Z, W.hat=W.hat, tune.parameters=tune.parameters, num.trees=num.trees, seed=seed, ...)
+  nmb_forest = grf::instrumental_forest(X=X, Y=Y*WTP-C, W=W, Z=Z, W.hat=W.hat, tune.parameters=tune.parameters, num.trees=num.trees, seed=seed, ...)
   forest = list()
   forest[["outcome.forest"]] = y_forest
   forest[["cost.forest"]] = c_forest

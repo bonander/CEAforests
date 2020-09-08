@@ -4,14 +4,16 @@
 \alias{describe_forest}
 \title{Create a descriptive table of the results.}
 \usage{
-describe_forest(forest, X = NULL, alpha = 0.05, ...)
+describe_forest(forest, X = NULL, alpha = 0.05, certainty_groups = FALSE, ...)
 }
 \arguments{
 \item{forest}{A trained CEA forest.}
 
 \item{X}{A matrix of variables to include in the table. If NULL, the X matrix from the forest object is used.}
 
-\item{alpha}{The desired significance level. Defaults to 0.05.}
+\item{alpha}{The desired significance level. Defaults to 0.05. Only used when certainty_groups is TRUE.}
+
+\item{certainty_groups}{Divide the sample into groups based on sampling uncertainty? Defaults to FALSE.}
 
 \item{...}{Other options to be passed to tableone::CreateTableOne (e.g., which variables are to be treated as factors, see examples).}
 }
