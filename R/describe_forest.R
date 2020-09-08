@@ -3,6 +3,7 @@
 #'
 #' @param forest A trained CEA forest.
 #' @param X A matrix of variables to include in the table. If NULL, the X matrix from the forest object is used.
+#' @param WTP The willingness to pay threshold. Defaults to WTP supplied to CEA forest object. Ignored when certainty_groups is TRUE.
 #' @param alpha The desired significance level. Defaults to 0.05. Only used when certainty_groups is TRUE.
 #' @param certainty_groups Divide the sample into groups based on sampling uncertainty? Defaults to FALSE.
 #' @param ... Other options to be passed to tableone::CreateTableOne (e.g., which variables are to be treated as factors, see examples).
@@ -13,7 +14,7 @@
 #' To be added...
 #' }
 #' @export
-describe_forest = function(forest, X=NULL, alpha=0.05, certainty_groups=FALSE, ...) {
+describe_forest = function(forest, X=NULL, WTP=NULL, alpha=0.05, certainty_groups=FALSE, ...) {
 
   if (isTRUE(any(class(forest) %in% c("CEAforests")))==FALSE) {stop("Unrecognized class. Please supply a CEAforests object.")}
 
@@ -67,18 +68,19 @@ describe_forest = function(forest, X=NULL, alpha=0.05, certainty_groups=FALSE, .
   }
 
   if (isTRUE(certainty_groups)==FALSE) {
-
+    if (is.null(WTP)) {WTP = forest[["WTP"]]} else {WTP=WTP}
     preds = predict(forest)
     dy = preds$predicted.delta_y
     dc = preds$predicted.delta_cost
     nmb.point = preds$predicted.nmb
+    below_threshold = as.numeric((dy*WTP-dc)>0)
 
     if (is.null(X)) {
       X=forest[["outcome.forest"]]$X.orig
     }
 
     tdat = as.data.frame(X)
-    Cost_Effective = ifelse(nmb.point>0, "Yes","No")
+    Cost_Effective = ifelse(below_threshold==1, "Yes","No")
     tdat$Cost_Effective = Cost_Effective
 
     if (isTRUE(length(unique(Cost_Effective))>1)) {

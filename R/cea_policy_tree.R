@@ -150,10 +150,10 @@ infer_policy = function(forest, treat.policy, WTP=NULL, ci.level=0.95, robust.se
   res = as.data.frame(cbind(ests,ses,lowers,uppers))
   res = rbind(res, c(tr.sugg.share,NA,NA,NA))
   colnames(res) = c("Estimate", "Std.Err", "Lower.CI", "Upper.CI")
-  rownames(res) = c("Average welfare gain per population member, treat everyone vs treat no one",
-                    "Average welfare gain per population member, suggested policy vs treat no one",
-                    "Difference in welfare gain (suggested vs. treat everyone)",
-                    "Share of the population treated, suggested policy")
+  rownames(res) = c("Average welfare gain per population member, everyone gets new treatment vs everyone gets control treatment",
+                    "Average welfare gain per population member, suggested policy vs everyone gets control treatment",
+                    "Difference in welfare gain (suggested vs. everyone gets new treatment)",
+                    "Share of the population who gets new treatment, suggested policy")
 
   return(res)
 
@@ -177,7 +177,7 @@ cea_create_dot_body <- function(tree, index = 1) {
   # Leaf case: print label only
   if (node$is_leaf) {
     action <- node$action
-    action <- ifelse(action==1, "Do not treat", "Treat")
+    action <- ifelse(action==1, "Control treatment", "New treatment")
     line_label <- paste(index - 1, ' [shape=box,style=filled,color="White", height=0.2, label="', action, "\n", '"];', sep="")
     return(line_label)
   }

@@ -39,7 +39,7 @@ cea_forest(
 \item{...}{Other options to be passed to grf::causal_forest() or grf::instrumenal_forest() if instrument is supplied.}
 }
 \value{
-Returns a list containing two causal forest objects (one for the outcome and one for costs). If an instrument is supplied, the code returns two instrumental forest objects.
+Returns a list containing three causal forest objects (one for the outcome, one for costs, and one for net monetary benefits). If an instrument is supplied, the code returns three corresponding instrumental forest objects.
 }
 \description{
 \code{cea_forest} Runs causal forests for outcomes, costs and net monetary benefits given a specified willingness to pay (a wrapper for grf::causal_forest).

@@ -14,7 +14,7 @@
 #'
 #' @references Athey, S., Tibshirani, J., & Wager, S. (2019). Generalized random forests. The Annals of Statistics, 47(2), 1148-1178.
 #'
-#' @return Returns a list containing two causal forest objects (one for the outcome and one for costs). If an instrument is supplied, the code returns two instrumental forest objects.
+#' @return Returns a list containing three causal forest objects (one for the outcome, one for costs, and one for net monetary benefits). If an instrument is supplied, the code returns three corresponding instrumental forest objects.
 #' @examples
 #' \dontrun{
 #' To be added...
@@ -74,7 +74,7 @@ cea_forest = function(Y, C, X, W, Z=NULL, WTP=NULL, W.hat=NULL, tune.parameters=
 #' @param object The trained CEA forest.
 #' @param ... Other options to be passed to grf::predict.causal_forest() or grf::predict.instrumental_forest(). See grf documentation for additional information.
 #'
-#' @return A matrix of predictions of conditional average treatment effects for the outcome and costs, along with variance estimates.
+#' @return A matrix of predictions of conditional average treatment effects for the outcome and costs, along with variance estimates. Also returns debiased errors (estimates of the error of a forest with infinite size) and excess error due to Monte Carlo variability (estimated via jackknife). The latter provides an estimates of how unstable the estimates are if we grow forests of the same size on the same dataset. Increase the number of trees until the excess error becomes negligible. See grf::predict.causal_forest documentation for further details.
 #' @examples
 #' \dontrun{
 #' To be added...
@@ -86,13 +86,19 @@ predict.CEAforests = function(object, ...) {
   obj = object
     yp = predict(obj[["outcome.forest"]], estimate.variance=TRUE, ...)
     predicted.delta_y = yp$predictions; variance.delta_y = yp$variance.estimates
+    delta_y.debiased.error = yp$debiased.error; delta_y.excess.error = yp$excess.error
     cp = predict(obj[["cost.forest"]], estimate.variance=TRUE, ...)
     predicted.delta_cost = cp$predictions; variance.delta_cost = cp$variance.estimates
+    delta_cost.debiased.error = cp$debiased.error; delta_cost.excess.error = cp$excess.error
     nmb = predict(obj[["nmb.forest"]], estimate.variance=TRUE, ...)
     predicted.nmb = nmb$predictions; variance.nmb = nmb$variance.estimates
+    nmb.debiased.error = nmb$debiased.error; nmb.excess.error = nmb$excess.error
     return(as.data.frame(cbind(predicted.delta_y, variance.delta_y,
                                predicted.delta_cost, variance.delta_cost,
-                               predicted.nmb, variance.nmb)))
+                               predicted.nmb, variance.nmb,
+                               delta_y.debiased.error,delta_y.excess.error,
+                               delta_cost.debiased.error, delta_cost.excess.error,
+                               nmb.debiased.error, nmb.excess.error)))
 }
 
 #' @title Plotting function for CEA forests.

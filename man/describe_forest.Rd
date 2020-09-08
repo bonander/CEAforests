@@ -4,12 +4,21 @@
 \alias{describe_forest}
 \title{Create a descriptive table of the results.}
 \usage{
-describe_forest(forest, X = NULL, alpha = 0.05, certainty_groups = FALSE, ...)
+describe_forest(
+  forest,
+  X = NULL,
+  WTP = NULL,
+  alpha = 0.05,
+  certainty_groups = FALSE,
+  ...
+)
 }
 \arguments{
 \item{forest}{A trained CEA forest.}
 
 \item{X}{A matrix of variables to include in the table. If NULL, the X matrix from the forest object is used.}
+
+\item{WTP}{The willingness to pay threshold. Defaults to WTP supplied to CEA forest object. Ignored when certainty_groups is TRUE.}
 
 \item{alpha}{The desired significance level. Defaults to 0.05. Only used when certainty_groups is TRUE.}
 
