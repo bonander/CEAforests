@@ -37,6 +37,10 @@ ce_plane = function(forest, alpha=0.05, type="individual", R=999, subset=NULL, W
     p = ggplot2::ggplot(data=df,ggplot2::aes(y=dc, x=dy))
     p = p + ggplot2::theme_bw() + ggplot2::theme(panel.grid.major = ggplot2::element_blank(), panel.grid.minor = ggplot2::element_blank(), axis.line = ggplot2::element_line(colour = "black"))
 
+    ne.quad = round(mean(as.numeric(ifelse(dy>0 & dc>0,1,0)))*100,1)
+    se.quad = round(mean(as.numeric(ifelse(dy>0 & dc<0,1,0)))*100,1)
+    nw.quad = round(mean(as.numeric(ifelse(dy<0 & dc>0,1,0)))*100,1)
+    sw.quad = round(mean(as.numeric(ifelse(dy<0 & dc<0,1,0)))*100,1)
 
     nmb.point = preds$predicted.nmb
 
@@ -90,6 +94,11 @@ ce_plane = function(forest, alpha=0.05, type="individual", R=999, subset=NULL, W
       below_threshold=mean(as.numeric((dy*WTP-dc)>0))
       df = as.data.frame(cbind(dy,dc))
 
+      ne.quad = round(mean(as.numeric(ifelse(dy>0 & dc>0,1,0)))*100,1)
+      se.quad = round(mean(as.numeric(ifelse(dy>0 & dc<0,1,0)))*100,1)
+      nw.quad = round(mean(as.numeric(ifelse(dy<0 & dc>0,1,0)))*100,1)
+      sw.quad = round(mean(as.numeric(ifelse(dy<0 & dc<0,1,0)))*100,1)
+
       p = ggplot2::ggplot(data=df,ggplot2::aes(y=dc, x=dy)) +
         ggplot2::geom_point(color="gray") +
         ggplot2::geom_abline(intercept=0, slope=ifelse(is.null(WTP), 0, WTP)) +
@@ -113,6 +122,11 @@ ce_plane = function(forest, alpha=0.05, type="individual", R=999, subset=NULL, W
     df = as.data.frame(cbind(dy,dc))
     below_threshold=mean(as.numeric((dy*WTP-dc)>0))
 
+    ne.quad = round(mean(as.numeric(ifelse(dy>0 & dc>0,1,0)))*100,1)
+    se.quad = round(mean(as.numeric(ifelse(dy>0 & dc<0,1,0)))*100,1)
+    nw.quad = round(mean(as.numeric(ifelse(dy<0 & dc>0,1,0)))*100,1)
+    sw.quad = round(mean(as.numeric(ifelse(dy<0 & dc<0,1,0)))*100,1)
+
     p = ggplot2::ggplot(data=df,ggplot2::aes(y=dc, x=dy)) +
       ggplot2::geom_point(color="gray") +
       ggplot2::geom_abline(intercept=0, slope=ifelse(is.null(WTP), 0, WTP)) +
@@ -127,6 +141,11 @@ ce_plane = function(forest, alpha=0.05, type="individual", R=999, subset=NULL, W
     p = p + ggplot2::stat_ellipse(linetype=2, level=1-alpha)
 
   } else (stop("Unrecognized plot type. Select either individual or average."))
+
+  cat(" New treatment is more effective and more costly (NE Quadrant) (%): ", ne.quad, "\n",
+        "New treatment is more effective and less costly (SE Quadrant) (%): ", se.quad, "\n",
+        "New treatment is less effective and more costly (NW Quadrant) (%): ", nw.quad, "\n",
+        "New treatment is less effective and less costly (SW Quadrant) (%): ", sw.quad)
 
   return(p)
 }
