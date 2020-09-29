@@ -4,10 +4,12 @@
 \alias{plot.cea_policy_tree}
 \title{Plot a cea_policy_tree tree object.}
 \usage{
-\method{plot}{cea_policy_tree}(x, ...)
+\method{plot}{cea_policy_tree}(x, group.names = c("Control treatment", "New treatment"), ...)
 }
 \arguments{
 \item{x}{The tree to plot}
+
+\item{group.names}{names of the treatment and control states (defaults to "Control treatment", "New treatment")}
 
 \item{...}{Additional options (currently ignored).}
 }

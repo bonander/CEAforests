@@ -6,10 +6,15 @@
 This function generates a GraphViz representation of the tree,
 which is then written into `dot_string`.}
 \usage{
-cea_export_graphviz(tree)
+cea_export_graphviz(
+  tree,
+  group.names = c("Control treatment", "New treatment")
+)
 }
 \arguments{
 \item{tree}{the tree to convert}
+
+\item{group.names}{names of the treatment and control states (defaults to "Control treatment", "New treatment")}
 }
 \description{
 Export a tree in DOT format.

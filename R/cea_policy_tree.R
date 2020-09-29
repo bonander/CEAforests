@@ -167,8 +167,13 @@ infer_policy = function(forest, treat.policy, WTP=NULL, ci.level=0.95, robust.se
 #' If it is a non-leaf node: show its splitting variable and splitting value
 #' @param tree the tree to convert
 #' @param index the index of the current node
+#' @param group.names names of the treatment and control states (defaults to c("Do not reimburse", "Reimburse"))
 #' @keywords internal
-cea_create_dot_body <- function(tree, index = 1) {
+cea_create_dot_body <- function(tree, index = 1, group.names=c("Do not reimburse", "Reimburse")) {
+
+
+  nam1 <- group.names[1]
+  nam2 <- group.names[2]
 
   #n = tree$n.sample
 
@@ -177,7 +182,7 @@ cea_create_dot_body <- function(tree, index = 1) {
   # Leaf case: print label only
   if (node$is_leaf) {
     action <- node$action
-    action <- ifelse(action==1, "Control treatment", "New treatment")
+    action <- ifelse(action==1, nam1, nam2)
     line_label <- paste(index - 1, ' [shape=box,style=filled,color="White", height=0.2, label="', action, "\n", '"];', sep="")
     return(line_label)
   }
@@ -235,11 +240,12 @@ cea_create_dot_body <- function(tree, index = 1) {
 #' This function generates a GraphViz representation of the tree,
 #' which is then written into `dot_string`.
 #' @param tree the tree to convert
+#' @param group.names names of the treatment and control states (defaults to c("Do not reimburse", "Reimburse"))
 #' @keywords internal
-cea_export_graphviz <- function(tree) {
+cea_export_graphviz <- function(tree,group.names=c("Do not reimburse", "Reimburse")) {
   header <- "digraph nodes { \n node [shape=box] ;"
   footer <- "}"
-  body <- cea_create_dot_body(tree)
+  body <- cea_create_dot_body(tree,group.names=group.names)
 
   dot_string <- paste(header, body, footer, sep = "\n")
 
@@ -248,16 +254,17 @@ cea_export_graphviz <- function(tree) {
 
 #' Plot a cea_policy_tree tree object.
 #' @param x The tree to plot
+#' @param group.names names of the treatment and control states (defaults to "Control treatment", "New treatment")
 #' @param ... Additional options (currently ignored).
 #'
 #' @method plot cea_policy_tree
 #' @export
-plot.cea_policy_tree <- function(x, ...) {
+plot.cea_policy_tree <- function(x,group.names=c("Do not reimburse", "Reimburse"), ...) {
   if (!requireNamespace("DiagrammeR", quietly = TRUE)) {
     stop("Package \"DiagrammeR\" must be installed to plot trees.")
   }
 
-  dot_file <- cea_export_graphviz(x[["tree"]])
+  dot_file <- cea_export_graphviz(x[["tree"]],group.names=group.names)
   DiagrammeR::grViz(dot_file)
 }
 

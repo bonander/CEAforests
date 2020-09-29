@@ -6,12 +6,18 @@
 If it is a leaf node: show it in different color, show number of samples, show leaf id
 If it is a non-leaf node: show its splitting variable and splitting value}
 \usage{
-cea_create_dot_body(tree, index = 1)
+cea_create_dot_body(
+  tree,
+  index = 1,
+  group.names = c("Control treatment", "New treatment")
+)
 }
 \arguments{
 \item{tree}{the tree to convert}
 
 \item{index}{the index of the current node}
+
+\item{group.names}{names of the treatment and control states (defaults to "Control treatment", "New treatment")}
 }
 \description{
 Writes each node information
