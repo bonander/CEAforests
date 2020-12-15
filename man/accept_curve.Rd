@@ -11,7 +11,8 @@ accept_curve(
   length.out,
   subset = NULL,
   compare = FALSE,
-  robust.se = FALSE
+  robust.se = FALSE,
+  labels = NULL
 )
 }
 \arguments{

@@ -19,7 +19,7 @@
 #' @import graphics
 #' @export
 
-accept_curve = function(forest, from, to, length.out, subset=NULL, compare=FALSE, robust.se=FALSE) {
+accept_curve = function(forest, from, to, length.out, subset=NULL, compare=FALSE, robust.se=FALSE, labels=NULL) {
 
 
   if (isTRUE(any(class(forest) %in% c("CEAforests")))==FALSE) {stop("Unrecognized class. Please supply a CEAforests object.")}
@@ -50,16 +50,18 @@ accept_curve = function(forest, from, to, length.out, subset=NULL, compare=FALSE
   }
   res1 = do.call("rbind", reslist)
   if (isTRUE(compare==TRUE && !is.null(subset)==TRUE)) {
-    reslist2 = list()
+    reslist2 = reslist3 = list()
     for (i in 1:length(WTP.seq)) {
       WTP = WTP.seq[i]
       reslist2[i]=avg_effects(forest, WTP=WTP, subset=NULL, robust.se=robust.se, compliance.scores=compliance.scores, icer.ci=FALSE)[3,5]
+      reslist3[i]=avg_effects(forest, WTP=WTP, subset=!subset, robust.se=robust.se, compliance.scores=compliance.scores, icer.ci=FALSE)[3,5]
     }
     res2 = do.call("rbind", reslist2)
-    ret=cbind(WTP=WTP.seq, accept.prob=res1,accept.prob.average=res2)
-    colnames(ret) = c("WTP", "accept.prob", "accept.prob.average")
+    res3 = do.call("rbind", reslist3)
+    ret=cbind(WTP=WTP.seq, accept.prob=res1,accept.prob.average=res2,accept.prob.not.in.subset=res3)
+    colnames(ret) = c("WTP", "accept.prob", "accept.prob.average","accept.prob.not.in.subset")
     class(ret) = c("accept_compare","accept_curve")
-    return(plot(ret))
+    return(plot.accept_curve(ret, labels=labels))
   } else {ret=cbind(WTP=WTP.seq, accept.prob=res1)
           colnames(ret)=c("WTP", "accept.prob")
           class(ret) = c("accept_main", "accept_curve")
@@ -70,6 +72,7 @@ accept_curve = function(forest, from, to, length.out, subset=NULL, compare=FALSE
 #' @description \code{plot.accept_curve} Plots acceptability curves using ggplot2.
 #'
 #' @param x An acceptability curve object.
+#' @param labels A character vector of labels for the selected subset, the entire sample and the unselected subset, defaults to c("Selected subgroup", "Full sample", "Not in selected subgroup").
 #' @param ... Additional options (currently ignored).
 #' @keywords internal
 #' @return A ggplot.
@@ -81,7 +84,7 @@ accept_curve = function(forest, from, to, length.out, subset=NULL, compare=FALSE
 #' @method plot accept_curve
 #' @export
 
-plot.accept_curve = function(x, ...) {
+plot.accept_curve = function(x, labels=NULL, ...) {
   curve = x
   if (isTRUE(base::identical(class(curve), c("accept_main","accept_curve")))) {
     df = as.data.frame(curve[,c(1,2)])
@@ -98,10 +101,20 @@ plot.accept_curve = function(x, ...) {
   if (isTRUE(base::identical(class(curve), c("accept_compare","accept_curve")))) {
     df1 = as.data.frame(curve[,c(1,2)])
     df2 = as.data.frame(curve[,c(1,3)])
+    df3 = as.data.frame(curve[,c(1,4)])
+    if (is.null(labels)) {
     df1$Group = "Selected subgroup"
     df2$Group = "Full sample"
-    colnames(df1) = colnames(df2) = c("WTP", "accept.prob", "Group")
-    df = rbind(df1, df2)
+    df3$Group = "Not in selected subgroup"
+    } else {
+
+      df1$Group = labels[1]
+      df2$Group = labels[2]
+      df3$Group = labels[3]
+
+    }
+    colnames(df1) = colnames(df2) = colnames(df3) = c("WTP", "accept.prob", "Group")
+    df = rbind(df1, df2, df3)
     p = ggplot(df, aes(y=accept.prob, x=WTP, linetype=Group)) + theme_bw() +
       xlab("Willingness to pay") + ylab("Pr(Cost-Effective)") +
       geom_line(size=1) +
@@ -110,7 +123,7 @@ plot.accept_curve = function(x, ...) {
             axis.line = element_line(colour = "black"),
             text = element_text(size=15),
             legend.title=element_blank(),
-            legend.position="bottom") + scale_linetype_manual(values=c("dashed", "solid"))
+            legend.position="bottom") + scale_linetype_manual(values=c("dashed", "dotted", "solid"))
   }
   return(p)
 }
