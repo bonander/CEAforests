@@ -7,6 +7,7 @@ Functions for estimating heterogeneous effects in individual-level cost-effectiv
 Install the latest version of this package by entering the following in R:
 
 install.packages("remotes")
+
 remotes::install_github("bonander/CEAforests")
 
 ## Tutorial 
