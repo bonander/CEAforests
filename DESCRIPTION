@@ -10,7 +10,10 @@ Suggests:
     mgcv,
     DiagrammeR,
     knitr,
-    rmarkdown
+    rmarkdown,
+    GGally,
+    MASS,
+    diagrammeR
 License: GPL-3
 Encoding: UTF-8
 LazyData: true
