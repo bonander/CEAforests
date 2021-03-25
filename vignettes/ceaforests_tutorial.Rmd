@@ -1,0 +1,297 @@
+---
+title: "Introduction to the CEAforests package"
+author: "Carl Bonander & Mikael Svensson"
+output:
+  prettydoc::html_pretty:
+    theme: cayman
+    toc: yes
+vignette: |
+  %\VignetteIndexEntry{Introduction to the CEAforests package} %\VignetteEngine{knitr::rmarkdown} %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(CEAforests)
+```
+
+The following tutorial illustrates how to use the `CEAforests` package to estimate heterogeneous effects and costs in cost-effectiveness analyses alongside clinical trials or observational studies. The package uses the `causal_forest` function from the `grf` package to fit causal forests according to the procedures presented in Bonander & Svensson (2021, Health Economics). Its main purpose is to provide a set of helpful functions that can be used to implement and analyze the results of causal forests in cost-effectiveness analyses.
+
+## Generate example data
+
+We begin by generating some data for the tutorial. The dataset contains three correlated $X$ variables, a treatment variable $W_i$, quality-adjusted life years (QALYs, $Y_i$) and healthcare costs in Euros ($C_i$).
+```{r fig.height = 6, fig.width = 9}
+require(MASS)
+require(GGally)
+# Set sample size
+n = 500
+# Set seed for replication
+RNGversion("3.6.0")
+set.seed(11313413)
+# Generate three X variables with some correlation structure
+mu = rep(0,3)
+x1cors = c(1, -0.5, -0.1)
+x2cors = c(-0.5, 1, 0)
+x3cors = c(-0.1, 0, 1)
+Sigma = matrix(c(x1cors, x2cors, x3cors), nrow=3, ncol=3)
+Xvars = mvrnorm(n=n, mu=mu, Sigma=Sigma)
+X1 = Xvars[,1]
+X2 = Xvars[,2]
+X3 = Xvars[,3]
+#Generate binary treatment variable W
+Z = rbinom(n, 1, 0.5)
+W = rbinom(n, 1, 1/(1+exp(-X1*-1.5+Z*1.4)))
+#Generate costs
+mui = 0.5*W +  W*X2*0.6 + W*X3*0.3 + rnorm(n,0,1)
+mui_s = pnorm(mui)
+C = (qgamma(mui_s, shape=1, rate=2)*100000)
+#Generate QALYs
+lni = 0.4 + 0.2*W + W*X1*0.3 + W*X3*0.5
+sd = 0.4
+Y = rlnorm(n, lni, sd)
+# Convert X to look more like real data while keeping dependencies
+xnames <- c("Severe_disease", "HRQoL", "Risk_score")
+pvars = pnorm(Xvars)
+povars <- round(qnorm(pvars, 50, 8), 1)
+betavars <- qbeta(pvars, 1, 2)
+binomvars <-  qbinom(pvars, 1, .50)
+X1 = binomvars[,1]
+X2 = betavars[,2]
+X3 = povars[,3]
+Xvars = cbind(X1,X2,X3)
+colnames(Xvars) = xnames
+options(scipen=999) #Remove scientific notation
+ggpairs(data.frame(Y,C,W,Xvars),
+        title="Distributions and correlation structure in the generated dataset", 
+        progress=FALSE, diag=list(continuous="barDiag")) + theme_bw(base_size=8)
+```
+
+## Basic functionality
+
+### Training a CEA forest
+
+Next, we train a CEA forest using the `cea_forest` command, which has four required inputs: three vectors containing the health outcome $Y_i$ (e.g., QALYs), healthcare costs $C_i$, and a treatment indicator $W_i$, respectively, and a matrix where each column represents the $X$ variables. `cea_forest` estimates heterogeneity in outcomes, costs and in the net monetary benefit as a function of the $X$ variables. By default, it also adjusts for confounding by $X$ using propensity scores. The latter feature can be circumvented by supplying known propensities, or propensities estimated using other methods, with the `W.hat` option. To calculate the net monetary benefit, we also need to specify a willingness to pay per QALY threshold ($\lambda$). In the example, we set $\lambda$ to 50000. The function can also pass any other call to the `causal_forest` command in the `grf` package.
+
+```{r}
+cea_example = cea_forest(Y=Y, C=C, X=Xvars, W=W, WTP=50000)
+```
+
+Internally, the function fits three causal forests (one for outcomes, one for costs and one for net monetary benefits) using the `grf` package, and then stores them in a single object that other functions in the `CEAforests` package will understand. 
+
+All other functions that we will use to explore heterogeneity and estimate effects below rely on the estimates contained in objects produced by the `cea_forest` function (`cea_example` in the present example).
+
+By default, the command will train 5000 causal trees on different random subsets of the data with the default settings from the `grf` package, with one exception; `tune.parameters` is set to `"all"` by default instead `"none"`. Thus, the `cea_forest` command will make use of the automated tuning features in `grf` by default. In real applications, it may be advisable to increase the number of trees (via the `num.trees` option) to, e.g., 50000-100000, to minimize the influence of Monte Carlo errors on the results.
+```{r}
+cea_example
+```
+
+### Predicting using CEA forests
+
+To get estimates of the conditional average effects on outcomes ( $\Delta Y_i$), costs ($\Delta C_i$) and net monetary benefits ($NMB_i$) for each individual in the data given their $X$ values, we use the `predict` command:
+```{r}
+pred.cea = predict(cea_example)
+```
+
+By default, the estimates reflect out-of-bag estimates for each individual, which means that they are taken only from the subset of causal trees in the forest in which the individual $i$ was not used for training. The output contains point estimates and their variances from each of the three forests.
+```{r}
+head(pred.cea,5)[1:2] #View first five individuals, incremental outcomes
+head(pred.cea,5)[3:4] #View first five individuals, incremental costs
+head(pred.cea,5)[5:6] #View first five individuals, net monetary benefits
+```
+
+It also contains some additional information that may be useful for model building. The columns named excess error reflect jackknife estimates of the Monte Carlo errors, which can be used to assess the instability of forests grown with the same amount of trees on the same data. The general recommendation provided by the authors of the grf package is to increase the number of trees until the excess error is determined to be negligible.
+```{r}
+head(pred.cea,5)[c(8,10,12)] #Excess errors for the first five individuals
+```
+
+The `predict` command can also be used to predictions at new values of $X$, which can, for instance, be useful for estimating the change in effect size if we modify the value of one variable while keeping others constant.
+```{r}
+predict(cea_example, newdata=t(matrix(c(Severe_disease=1, HRQoL=0.3, Risk_score=50))))
+predict(cea_example, newdata=t(matrix(c(Severe_disease=0, HRQoL=0.3, Risk_score=50))))
+```
+
+
+### Plotting heterogeneity in outcomes, costs and net monetary benefits
+
+The `plot` function can be used to generate histograms of the out-of-bag estimates for outcomes, costs and net monetary benefits. The `which.y` can be used to specify which effects to plot (`"outcome"`, `"cost"`, `"nmb"`, or `"all"`). The function calls the `ggplot2` package (in the latter instance, it also uses the `cowplot` package to merge the three plots).
+
+#### Histograms
+
+```{r fig.height = 6, fig.width = 9}
+plot(cea_example, which.y="nmb")
+```
+
+Different graphs can be combined directly within the function.
+```{r fig.height = 6, fig.width = 9}
+plot(cea_example, which.y=c("outcome","cost"))
+```
+
+Graphical parameters can easily be changed using calls to `ggplot2`.
+```{r fig.height = 6, fig.width = 9}
+plot(cea_example, which.y="nmb") + theme_classic(base_size=10) + xlab("NMB, WTP = 50000")
+```
+
+#### Scatter plots
+
+Specifying an $X$ variable with the option `which.x` produces a scatter plot of the estimates along the focal $X$ variable.
+```{r fig.height = 6, fig.width = 9}
+plot(cea_example, which.y="nmb", which.x="HRQoL")
+```
+
+#### Conditional effect plots
+
+Setting `conditional=TRUE`, the function instead uses `predict` to vary the focal $X$ variable while keeping the others constant at their mean. The plot includes point estimates and 95% confidence bands, and allows us to better assess how a change in $X$ affects the cost-effectiveness of the treatment.
+```{r fig.height = 6, fig.width = 9}
+plot(cea_example, which.y="nmb", which.x="HRQoL", conditional=TRUE)
+```
+
+#### Individual-level cost-effectivness plane
+
+Beyond the standard plots, the `CEAforests` package also includes a set of specialized functions for cost-effectiveness analyses. The `ce_plane` function can be used to produce individual-level cost-effectiveness planes using the out-of-bag estimates from the `predict` function.
+```{r fig.height = 6, fig.width = 9}
+ce_plane(cea_example) + ggplot2::ylim(c(-50000,120000)) + ggplot2::xlim(c(-1,2.5))
+```
+
+While the relevance of statistical inference is debatable in the context of cost-effectiveness analyses, it may be useful to probe how much random noise influences results of the heterogeneity analysis. Setting `certainty_groups=TRUE`, the function will use the point estimates and variance of the out-of-bag estimates from the net monetary benefit forest to divide the data into certainty groups with respect to the WTP threshold defined in the `cea_forest` object. The option alpha can be used to modify the confidence level (default = 0.05, i.e., 95% CIs). 
+```{r fig.height = 6, fig.width = 9}
+ce_plane(cea_example, certainty_groups = TRUE) + ggplot2::ylim(c(-50000,120000)) + ggplot2::xlim(c(-1,2.5))
+```
+
+The plotted point estimates are taken from the outcome and cost forests. These estimates may differ from those produced by the net monetary benefit forest due to Monte Carlo errors. The consequence of this can be seen in the plot above, where some individuals who are above the WTP threshold are classified as being significantly below the threshold, and vice versa. This issue can be avoided by increasing the number of trees in the `cea_forest` object (using the `num.trees` option).
+
+### Exploring heterogeneity with tables and regression
+
+Differences in characteristics between individuals above and below the WTP threshold can be investigated using the `describe_forest` function.
+```{r}
+describe_forest(cea_example)
+describe_forest(cea_example, certainty_groups=TRUE)
+```
+
+The function uses the `tableone` package, and can pass calls directly to `CreateTableOne` to modify the table.
+```{r}
+dtable = describe_forest(cea_example, factorVars=c("Severe_disease"))
+print(dtable, nonnormal="HRQoL")
+```
+
+The `explain_forest` function fits linear regression models of the form $E[\Delta Y|X] = a+\beta X$ to estimate the marginal effects of covariates on the effect size, which can be useful for reducing the complexity of the results and to assess how specific variable appear to influence the effect size after adjustment for other variables in the data. By default, it will run intercepts only models to estimate the average $\Delta Y$, $\Delta C$ and $NMB$ in the sample.
+
+```{r}
+explain_forest(cea_example)
+```
+
+Covariates can be input in the same manner as in the `cea_forest` function.
+```{r}
+explain_forest(cea_example, X=Xvars)
+```
+
+The $X$ matrix can also be changed as desired and does not have to include variables that were used to train the forest. For instance, we may want to explore how having a non-severe version of the disease affects $\Delta Y$, $\Delta C$ and $NMB$ compared to a severe variant.
+```{r}
+notsevere_dummy = 1-Xvars[,c("Severe_disease")]
+explain_forest(cea_example, X=data.frame(notsevere_dummy))
+```
+
+By default, the function uses the willingness to pay threshold specified in the `cea_forest` object. The threshold can easily be changed without having to re-train the forest using the `WTP` option. 
+```{r}
+explain_forest(cea_example, X=data.frame(notsevere_dummy), WTP=20000)
+```
+
+## Using CEAforests to estimate average effects
+
+The main purpose of the `CEAforests` package is to simplify heterogeneity estimation. However, the package would not be complete without classic functions to produce sample average cost-effectiveness results from the forest object. The `avg_effects` function produces a small table with incremental effects, costs, net monetary benefits and incremental cost-effectiveness ratio (ICER) for the entire sample or, optionally, for a specified subgroup.
+
+```{r}
+avg_effects(cea_example)
+```
+
+The willingness to pay threshold can easily be changed without having to re-train the forest.
+```{r}
+avg_effects(cea_example, WTP=20000)
+```
+
+By default, the function uses Fieller's method to calculate CIs for the ICER. The confidence intervals in the table can also be obtained via the bootstrap as described in Bonander & Svensson (2021).
+```{r}
+avg_effects(cea_example, boot.ci=TRUE)
+```
+
+The `subset` option can be used to obtain the same table for a specified subgroup defined by logical conditions.
+```{r}
+avg_effects(cea_example, subset=Xvars[,"Risk_score"]>50)
+```
+
+### Cost-effectiveness planes
+
+Standard cost-effectiveness planes with confidence ellipses can also be obtained via the bootstrap by setting `type="average"` in the `ce_plane` function.
+```{r fig.height = 6, fig.width = 9}
+ce_plane(cea_example, type="average") + ggplot2::ylim(c(-1000,70000)) + ggplot2::xlim(c(0, 2.2))
+```
+
+The `subset` option can be used here as well to obtain a corresponding plot for a specified subgroup.
+```{r fig.height = 6, fig.width = 9}
+ce_plane(cea_example, type="average", subset=Xvars[,"Risk_score"]>50) + ggplot2::ylim(c(-1000,70000)) + ggplot2::xlim(c(0, 2.2))
+```
+
+### Cost-effectivness acceptability curves
+
+Cost-effectiveness acceptability curves (CEAC), based on probabilities estimated via a cumulative normal distribution function, can be obtained using the `accept_curve` function.
+```{r fig.height = 6, fig.width = 9}
+accept_curve(cea_example,from=1000,to=100000,length.out=50)
+```
+
+The function can also be used to compare the subgroups based on logical conditions by setting `compare=TRUE`.
+```{r fig.height = 6, fig.width = 9}
+accept_curve(cea_example, subset=Xvars[,"Risk_score"]>50, from=1000, to=100000, length.out=50, 
+             compare=TRUE, 
+             labels=c("Risk > 50", "Full sample", "Risk < 50"))
+```
+
+## Automated policy learning using CEAforests
+
+The `CEAforests` package can also call the `policytree` package to perform an exhaustive search for the optimal reimbursement policy given a set of input variables and a pre-specified complexity (tree depth). Here, the optimality criteria is defined as the policy that maximizes the average net monetary benefit.
+
+First, we train a policy tree with a single split (`depth=1`).
+```{r fig.height = 6, fig.width = 9}
+ptree1 = cea_policy_tree(cea_example, X=Xvars, depth=1)
+plot(ptree1)
+```
+
+The `infer_policy` function can be used to estimate the value of implementing the suggested policy versus both a new-treatment-for-all and a old-treatment-for-all scenario.
+```{r}
+infer_policy(cea_example,ptree1)
+```
+
+The same function can also be used with custom policies.
+```{r}
+infer_policy(cea_example, treat.policy=Xvars[,"Risk_score"]>50 & Xvars[,"Severe_disease"]==0)
+```
+
+The function can also suggest more complex policies by increasing the depth of the tree.
+```{r fig.height = 6, fig.width = 9}
+plot(cea_policy_tree(cea_example, X=Xvars, depth=2))
+```
+
+The function uses the willingness to pay threshold from the `cea_forest` object by default. The threshold can easily be changed, without re-training the forest, using the `WTP` option. In our example, increasing the threshold leads to a slightly more inclusive reimbursement policy.
+```{r fig.height = 6, fig.width = 9}
+plot(cea_policy_tree(cea_example, X=Xvars, depth=2, WTP=70000))
+```
+
+## Using instruments with CEAforests
+
+The `CEAforests` package can also make use of instruments via the `instrumental_forest` function in `grf`. To use an instrument $Z_i$ (e.g., random treatment allocation in cases where $W_i$ reflects actual exposure to treatment), we supply the instrument to the `cea_forest` function via the `Z` option.
+```{r}
+iv_example = cea_forest(Y=Y, C=C, X=Xvars, W=W, Z=Z, WTP=50000)
+iv_example
+```
+
+The instrumental version of the forest can then be analyzed as a standard `cea_forest` object.
+```{r fig.height = 6, fig.width = 9}
+avg_effects(iv_example)
+
+describe_forest(iv_example, factorVars="Severe_disease")
+
+ce_plane(iv_example, type="average")
+```

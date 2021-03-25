@@ -4,10 +4,12 @@
 \alias{plot.accept_curve}
 \title{Plotting function for (sub)-population acceptability curves.}
 \usage{
-\method{plot}{accept_curve}(x, ...)
+\method{plot}{accept_curve}(x, labels = NULL, ...)
 }
 \arguments{
 \item{x}{An acceptability curve object.}
+
+\item{labels}{A character vector of labels for the selected subset, the entire sample and the unselected subset, defaults to c("Selected subgroup", "Full sample", "Not in selected subgroup").}
 
 \item{...}{Additional options (currently ignored).}
 }
