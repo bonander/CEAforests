@@ -150,10 +150,10 @@ infer_policy = function(forest, treat.policy, WTP=NULL, ci.level=0.95, robust.se
   res = as.data.frame(cbind(ests,ses,lowers,uppers))
   res = rbind(res, c(tr.sugg.share,NA,NA,NA))
   colnames(res) = c("Estimate", "Std.Err", "Lower.CI", "Upper.CI")
-  rownames(res) = c("Average welfare gain per population member, everyone gets new treatment vs everyone gets control treatment",
-                    "Average welfare gain per population member, suggested policy vs everyone gets control treatment",
-                    "Difference in welfare gain (suggested vs. everyone gets new treatment)",
-                    "Share of the population who gets new treatment, suggested policy")
+  rownames(res) = c("Average NMB, new-for-all vs control-for-all",
+                    "Average NMB, suggested policy vs control-for-all",
+                    "Difference in NMB, suggested vs. new-for-all",
+                    "Prop. who gets new treatment, suggested policy")
 
   return(res)
 
