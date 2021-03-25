@@ -2,11 +2,13 @@
 title: "Introduction to the CEAforests package"
 author: "Carl Bonander & Mikael Svensson"
 output:
-  prettydoc::html_pretty:
-    theme: cayman
-    toc: yes
+ prettydoc::html_pretty:
+   theme: cayman
+   toc: true
 vignette: |
-  %\VignetteIndexEntry{Introduction to the CEAforests package} %\VignetteEngine{knitr::rmarkdown} %\VignetteEncoding{UTF-8}
+  %\VignetteIndexEntry{Introduction to the CEAforests package} 
+  %\VignetteEngine{knitr::knitr} 
+  %\VignetteEncoding{UTF-8}
 ---
 
 ```{r, include = FALSE}
@@ -255,7 +257,7 @@ The `CEAforests` package can also call the `policytree` package to perform an ex
 
 First, we train a policy tree with a single split (`depth=1`).
 ```{r fig.height = 6, fig.width = 9}
-ptree1 = cea_policy_tree(cea_example, X=Xvars, depth=1)
+ptree1 <- cea_policy_tree(cea_example, X=Xvars, depth=1)
 plot(ptree1)
 ```
 
